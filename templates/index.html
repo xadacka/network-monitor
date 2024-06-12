@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Monitor</title>
+    <style>
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            color: white;
+            font-family: 'Degular', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            overflow: hidden;
+            cursor: none;
+        }
+        .red-background {
+            background-color: red;
+        }
+        .metrics {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            flex-grow: 0;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        .metric, .offline {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 5em;
+            font-family: 'Degular', sans-serif;
+            font-weight: bold;
+            margin: 0.1em;
+        }
+        .arrow {
+            font-size: 1em;
+            color: inherit;
+        }
+        .graph-container {
+            width: 100%;
+            height: calc(100% - 120px);
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/min/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+    <link rel="stylesheet" href="https://use.typekit.net/slz6nxz.css">
+    <script>
+        let chart;
+        let offlineStartTime = null;
+
+        function formatDuration(seconds) {
+            const hrs = String(Math.floor(seconds / 3600)).padStart(2, '0');
+            const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+            const secs = String(seconds % 60).padStart(2, '0');
+            return `${hrs}:${mins}:${secs}`;
+        }
+
+        function updateData() {
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);  // Debugging output
+                    if (data.network_down) {
+                        if (!offlineStartTime) {
+                            offlineStartTime = Date.now();
+                        }
+                        const offlineDuration = Math.floor((Date.now() - offlineStartTime) / 1000);
+                        document.getElementById('metrics').innerHTML = `<div class="offline">Offline for ${formatDuration(offlineDuration)}</div>`;
+                        document.body.classList.add('red-background');
+                    } else {
+                        offlineStartTime = null;
+                        document.body.classList.remove('red-background');
+                        document.getElementById('metrics').innerHTML = `
+                            <div class="metric">
+                                <div id="latency">${data.latency}ms</div>
+                            </div>
+                            <div class="metric">
+                                <div id="download">${Math.round(data.speedtest.download)}<span class="arrow">&#x2193;</span></div>
+                            </div>
+                            <div class="metric">
+                                <div id="upload">${Math.round(data.speedtest.upload)}<span class="arrow">&#x2191;</span></div>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching data:", error);  // Debugging output
+                });
+            setTimeout(updateData, 1000); // Update every second to show the offline duration accurately
+        }
+
+        function updateGraph() {
+            fetch('/graph-data')
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);  // Debugging output
+                    chart.data.labels = data.timestamps;
+                    chart.data.datasets[0].data = data.latencies;
+                    chart.update();
+                })
+                .catch(error => {
+                    console.error("Error fetching graph data:", error);  // Debugging output
+                });
+            setTimeout(updateGraph, 5000);
+        }
+
+        window.onload = function() {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Latency (ms)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        data: []
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'minute'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Latency (ms)'
+                            }
+                        }
+                    },
+                    elements: {
+                        line: {
+                            tension: 0.4,
+                            borderWidth: 3
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false  // Hide the legend
+                        }
+                    }
+                }
+            });
+
+            updateData();
+            updateGraph();
+        };
+    </script>
+</head>
+<body>
+    <div id="metrics" class="metrics">
+        <div class="metric">
+            <div id="latency">0ms</div>
+        </div>
+        <div class="metric">
+            <div id="download">0<span class="arrow">&#x2193;</span></div>
+        </div>
+        <div class="metric">
+            <div id="upload">0<span class="arrow">&#x2191;</span></div>
+        </div>
+    </div>
+    <div class="graph-container">
+        <canvas id="myChart"></canvas>
+    </div>
+</body>
+</html>
