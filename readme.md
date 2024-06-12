@@ -2,7 +2,7 @@
 
 I was having an issue with my internet dropping out a lot, so I built this little tool to keep track of when it goes down. Shows a graph of ping speeds over the past 5 minutes (tested every 5 seconds) and the latest speed test (runs every 3 minutes). You can change the intervals in the python file.
 
-It's designed to run on a Raspberry Pi with a small display attached. I'm using the official pi 7" LCD as I had one laying around and it works great, but it should work fine with any other screen. You can also access it from other deivces on the network at http://[ip]:5000
+It's designed to run on a Raspberry Pi with a small display attached. I'm using the official pi 7" LCD as I had one laying around and it works great, but it should work fine with any other screen. You can also access it from other devices on the network at http://[ip]:5000
 
 ## Features
 
@@ -24,9 +24,10 @@ It's designed to run on a Raspberry Pi with a small display attached. I'm using 
 To install and set up the Network Monitor, follow these steps:
 
 1. Clone the repository:
-   ```bash
+   ```
    git clone https://github.com/xadacka/network-monitor.git
-   cd network-monitor```
+   cd network-monitor
+   ```
 2. Run the install script:
    ```
    ./install.sh
@@ -82,7 +83,13 @@ Returns the latency data and timestamps for graph plotting.
 ```
 {
     "latencies": [20, 30, 25, 40],
-    "timestamps": ["2023-06-12 10:00:00", "2023-06-12 10:05:00", "2023-06-12 10:10:00", "2023-06-12 10:15:00"]
+    "timestamps": 
+        [
+            "2023-06-12 10:00:00", 
+            "2023-06-12 10:05:00", 
+            "2023-06-12 10:10:00", 
+            "2023-06-12 10:15:00"
+        ]
 }
 ```
 
